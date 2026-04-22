@@ -3,10 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Filter, X } from "lucide-react";
 import type { Topic, TaskStatus } from "@/types/paaci";
 
+export type PeriodFilter = "all" | "day" | "week" | "month";
+
 export interface FilterState {
   status: TaskStatus | "all";
   topicId: string | "all";
   activityId: string | "all";
+  period: PeriodFilter;
 }
 
 interface Props {
@@ -23,10 +26,17 @@ const statusOptions: { value: TaskStatus | "all"; label: string }[] = [
   { value: "atrasada", label: "Atrasada" },
 ];
 
+const periodOptions: { value: PeriodFilter; label: string }[] = [
+  { value: "all", label: "Qualquer período" },
+  { value: "day", label: "Hoje (diário)" },
+  { value: "week", label: "Esta semana" },
+  { value: "month", label: "Este mês" },
+];
+
 export function TaskFilters({ topics, filters, onChange }: Props) {
   const selectedTopic = topics.find(t => t.id === filters.topicId);
   const activities = selectedTopic?.activities ?? [];
-  const hasActive = filters.status !== "all" || filters.topicId !== "all" || filters.activityId !== "all";
+  const hasActive = filters.status !== "all" || filters.topicId !== "all" || filters.activityId !== "all" || filters.period !== "all";
 
   return (
     <div className="flex flex-wrap items-center gap-2 p-3 rounded-lg border border-border bg-card shadow-soft">
@@ -64,11 +74,18 @@ export function TaskFilters({ topics, filters, onChange }: Props) {
         </SelectContent>
       </Select>
 
+      <Select value={filters.period} onValueChange={(v) => onChange({ ...filters, period: v as PeriodFilter })}>
+        <SelectTrigger className="w-[200px] h-9"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {periodOptions.map(o => (<SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>))}
+        </SelectContent>
+      </Select>
+
       {hasActive && (
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => onChange({ status: "all", topicId: "all", activityId: "all" })}
+          onClick={() => onChange({ status: "all", topicId: "all", activityId: "all", period: "all" })}
         >
           <X className="h-4 w-4 mr-1" /> Limpar
         </Button>

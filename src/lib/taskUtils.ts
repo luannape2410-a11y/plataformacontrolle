@@ -51,10 +51,49 @@ export function effectiveStatus(task: Task): TaskStatus {
   return task.status;
 }
 
+export type PeriodFilter = "all" | "day" | "week" | "month";
+
+function periodRange(period: PeriodFilter): { start: Date; end: Date } | null {
+  if (period === "all") return null;
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+
+  if (period === "day") {
+    end.setDate(end.getDate() + 1);
+  } else if (period === "week") {
+    // Semana atual (segunda a domingo)
+    const day = start.getDay(); // 0=Dom..6=Sab
+    const diffToMonday = (day + 6) % 7;
+    start.setDate(start.getDate() - diffToMonday);
+    end.setTime(start.getTime());
+    end.setDate(end.getDate() + 7);
+  } else if (period === "month") {
+    start.setDate(1);
+    end.setTime(start.getTime());
+    end.setMonth(end.getMonth() + 1);
+  }
+  return { start, end };
+}
+
+function taskInPeriod(task: Task, range: { start: Date; end: Date } | null): boolean {
+  if (!range) return true;
+  if (!task.dueDate) return false;
+  const d = new Date(task.dueDate);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime() >= range.start.getTime() && d.getTime() < range.end.getTime();
+}
+
 export function filterTasks(
   topics: Topic[],
-  filters: { status: TaskStatus | "all"; topicId: string | "all"; activityId: string | "all" },
+  filters: {
+    status: TaskStatus | "all";
+    topicId: string | "all";
+    activityId: string | "all";
+    period: PeriodFilter;
+  },
 ): Topic[] {
+  const range = periodRange(filters.period);
   return topics
     .filter(t => filters.topicId === "all" || t.id === filters.topicId)
     .map(t => ({
@@ -63,7 +102,10 @@ export function filterTasks(
         .filter(a => filters.activityId === "all" || a.id === filters.activityId)
         .map(a => ({
           ...a,
-          tasks: a.tasks.filter(tk => filters.status === "all" || effectiveStatus(tk) === filters.status),
+          tasks: a.tasks.filter(tk =>
+            (filters.status === "all" || effectiveStatus(tk) === filters.status) &&
+            taskInPeriod(tk, range)
+          ),
         })),
     }));
 }

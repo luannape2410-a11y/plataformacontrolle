@@ -15,7 +15,7 @@ const Index = () => {
   const api = usePaaci();
   const { topics } = api;
 
-  const [filters, setFilters] = useState<FilterState>({ status: "all", topicId: "all", activityId: "all" });
+  const [filters, setFilters] = useState<FilterState>({ status: "all", topicId: "all", activityId: "all", period: "all" });
 
   const stats = useMemo(() => {
     const activities = topics.reduce((s, t) => s + t.activities.length, 0);
@@ -26,7 +26,7 @@ const Index = () => {
   }, [topics]);
 
   const filteredTopics = useMemo(() => filterTasks(topics, filters), [topics, filters]);
-  const hasFilters = filters.status !== "all" || filters.topicId !== "all" || filters.activityId !== "all";
+  const hasFilters = filters.status !== "all" || filters.topicId !== "all" || filters.activityId !== "all" || filters.period !== "all";
 
   return (
     <div className="min-h-screen bg-background">
