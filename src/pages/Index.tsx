@@ -1,23 +1,32 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { usePaaci } from "@/hooks/usePaaci";
 import { TopicCard } from "@/components/paaci/TopicCard";
 import { ExportMenu } from "@/components/paaci/ExportMenu";
+import { TaskFilters, type FilterState } from "@/components/paaci/TaskFilters";
+import { TaskCalendar } from "@/components/paaci/TaskCalendar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ShieldCheck, ListTodo, CheckCircle2, AlertTriangle, RotateCcw } from "lucide-react";
+import { ShieldCheck, ListTodo, CheckCircle2, AlertTriangle, RotateCcw, LayoutGrid, CalendarDays } from "lucide-react";
+import { filterTasks, effectiveStatus } from "@/lib/taskUtils";
 
 const Index = () => {
   const api = usePaaci();
   const { topics } = api;
 
+  const [filters, setFilters] = useState<FilterState>({ status: "all", topicId: "all", activityId: "all" });
+
   const stats = useMemo(() => {
     const activities = topics.reduce((s, t) => s + t.activities.length, 0);
     const tasks = topics.reduce((s, t) => s + t.activities.reduce((s2, a) => s2 + a.tasks.length, 0), 0);
     const done = topics.reduce((s, t) => s + t.activities.reduce((s2, a) => s2 + a.tasks.filter(tk => tk.status === "concluida").length, 0), 0);
-    const late = topics.reduce((s, t) => s + t.activities.reduce((s2, a) => s2 + a.tasks.filter(tk => tk.status === "atrasada").length, 0), 0);
+    const late = topics.reduce((s, t) => s + t.activities.reduce((s2, a) => s2 + a.tasks.filter(tk => effectiveStatus(tk) === "atrasada").length, 0), 0);
     return { activities, tasks, done, late, pct: tasks ? Math.round((done / tasks) * 100) : 0 };
   }, [topics]);
+
+  const filteredTopics = useMemo(() => filterTasks(topics, filters), [topics, filters]);
+  const hasFilters = filters.status !== "all" || filters.topicId !== "all" || filters.activityId !== "all";
 
   return (
     <div className="min-h-screen bg-background">
@@ -69,11 +78,38 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Topics */}
+      {/* Content */}
       <main className="container py-8 space-y-6">
-        {topics.map(topic => (
-          <TopicCard key={topic.id} topic={topic} api={api} />
-        ))}
+        <Tabs defaultValue="board" className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="board" className="gap-2"><LayoutGrid className="h-4 w-4" /> Painel</TabsTrigger>
+            <TabsTrigger value="calendar" className="gap-2"><CalendarDays className="h-4 w-4" /> Calendário</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="board" className="space-y-6 mt-0">
+            <TaskFilters topics={topics} filters={filters} onChange={setFilters} />
+
+            {hasFilters && (
+              <p className="text-xs text-muted-foreground">
+                Exibindo resultados filtrados. As tarefas que não correspondem aos filtros estão ocultas.
+              </p>
+            )}
+
+            {filteredTopics.map(topic => (
+              <TopicCard key={topic.id} topic={topic} api={api} />
+            ))}
+
+            {filteredTopics.length === 0 && (
+              <Card className="p-8 text-center text-muted-foreground">
+                Nenhum tópico corresponde aos filtros selecionados.
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="calendar" className="mt-0">
+            <TaskCalendar topics={topics} upcomingDays={7} />
+          </TabsContent>
+        </Tabs>
 
         <footer className="text-center text-xs text-muted-foreground pt-8 pb-4">
           Painel construído a partir do PAACI 2026 — Prefeitura Municipal de Vazante-MG.<br />
