@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { saveAs } from "file-saver";
 import type { Topic, TaskStatus } from "@/types/paaci";
+import type { FlatTask } from "./taskUtils";
 
 const STATUS_LABEL: Record<TaskStatus, string> = {
   pendente: "Pendente",
