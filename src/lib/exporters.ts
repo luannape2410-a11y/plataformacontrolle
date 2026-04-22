@@ -176,5 +176,118 @@ export function exportCSV(topics: Topic[]) {
   const escape = (v: string) => `"${(v ?? "").replace(/"/g, '""')}"`;
   const csv = rows.map(r => r.map(c => escape(String(c))).join(";")).join("\r\n");
   const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
-  saveAs(blob, `PAACI_2026_Relatorio_${fileStamp()}.csv`);
+}
+
+// ===========================================================
+// Exportações de tarefas filtradas (usadas no Calendário)
+// ===========================================================
+
+interface FilteredMeta {
+  title?: string;
+  filtersLabel?: string;
+}
+
+export function exportTasksPDF(tasks: FlatTask[], meta: FilteredMeta = {}) {
+  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+  const created = generatedAt();
+  const title = meta.title ?? "PAACI 2026 — Tarefas filtradas";
+
+  doc.setFillColor(20, 56, 105);
+  doc.rect(0, 0, doc.internal.pageSize.getWidth(), 70, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text(title, 40, 30);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text("Prefeitura Municipal de Vazante-MG · Controladoria Geral", 40, 46);
+  doc.text(`Gerado em: ${created}`, 40, 58);
+  if (meta.filtersLabel) doc.text(`Filtros: ${meta.filtersLabel}`, 400, 58);
+
+  const body = tasks.map(t => [
+    `${t.topicCode}`,
+    t.activityTitle,
+    t.task.title,
+    t.task.responsible || "—",
+    formatDate(t.task.dueDate),
+    STATUS_LABEL[t.task.status],
+  ]);
+
+  autoTable(doc, {
+    startY: 90,
+    head: [["Tópico", "Atividade", "Tarefa", "Responsável", "Prazo", "Status"]],
+    body: body.length ? body : [["—", "—", "Nenhuma tarefa encontrada com os filtros aplicados", "—", "—", "—"]],
+    styles: { fontSize: 9, cellPadding: 5, valign: "top" },
+    headStyles: { fillColor: [20, 56, 105], textColor: 255 },
+    alternateRowStyles: { fillColor: [245, 248, 252] },
+    margin: { left: 40, right: 40 },
+  });
+
+  const total = doc.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(120);
+    doc.text(`Página ${i} de ${total}`, doc.internal.pageSize.getWidth() - 80, doc.internal.pageSize.getHeight() - 20);
+  }
+
+  doc.save(`PAACI_2026_Tarefas_${fileStamp()}.pdf`);
+}
+
+export function exportTasksDOC(tasks: FlatTask[], meta: FilteredMeta = {}) {
+  const created = generatedAt();
+  const title = meta.title ?? "PAACI 2026 — Tarefas filtradas";
+  const css = `
+    body{font-family:Calibri,Arial,sans-serif;color:#1a2540;max-width:1000px;margin:auto}
+    h1{color:#143869;border-bottom:3px solid #f0b51a;padding-bottom:8px}
+    .meta{color:#666;font-size:11pt;margin-bottom:18px}
+    table{width:100%;border-collapse:collapse;margin:8px 0;font-size:10pt}
+    th{background:#143869;color:#fff;padding:6px;text-align:left}
+    td{border:1px solid #ccd;padding:6px;vertical-align:top}
+  `;
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>${css}</style></head><body>
+    <h1>${title}</h1>
+    <p class="meta">Prefeitura Municipal de Vazante-MG · Controladoria Geral<br/>
+    Gerado em: <strong>${created}</strong>${meta.filtersLabel ? `<br/>Filtros: <em>${meta.filtersLabel}</em>` : ""}</p>
+    <table>
+      <tr><th>Tópico</th><th>Atividade</th><th>Tarefa</th><th>Responsável</th><th>Prazo</th><th>Status</th></tr>
+      ${tasks.length === 0
+        ? `<tr><td colspan="6"><em>Nenhuma tarefa encontrada com os filtros aplicados.</em></td></tr>`
+        : tasks.map(t => `<tr>
+            <td>${t.topicCode}</td>
+            <td>${t.activityTitle}</td>
+            <td>${t.task.title}${t.task.notes ? `<br/><small>${t.task.notes}</small>` : ""}</td>
+            <td>${t.task.responsible || "—"}</td>
+            <td>${formatDate(t.task.dueDate)}</td>
+            <td>${STATUS_LABEL[t.task.status]}</td>
+          </tr>`).join("")}
+    </table>
+  </body></html>`;
+  const blob = new Blob(["\ufeff", html], { type: "application/msword" });
+  saveAs(blob, `PAACI_2026_Tarefas_${fileStamp()}.doc`);
+}
+
+export function exportTasksCSV(tasks: FlatTask[], meta: FilteredMeta = {}) {
+  const created = generatedAt();
+  const rows: string[][] = [];
+  rows.push([meta.title ?? `PAACI 2026 — Tarefas filtradas`, `Gerado em ${created}`]);
+  if (meta.filtersLabel) rows.push([`Filtros: ${meta.filtersLabel}`]);
+  rows.push([]);
+  rows.push(["Tópico", "Atividade", "Tarefa", "Responsável", "Prazo", "Status", "Criada em", "Observações"]);
+  tasks.forEach(t => {
+    rows.push([
+      `${t.topicCode} — ${t.topicTitle}`,
+      t.activityTitle,
+      t.task.title,
+      t.task.responsible || "",
+      formatDate(t.task.dueDate),
+      STATUS_LABEL[t.task.status],
+      formatDate(t.task.createdAt),
+      t.task.notes || "",
+    ]);
+  });
+  const escape = (v: string) => `"${(v ?? "").replace(/"/g, '""')}"`;
+  const csv = rows.map(r => r.map(c => escape(String(c))).join(";")).join("\r\n");
+  const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+  saveAs(blob, `PAACI_2026_Tarefas_${fileStamp()}.csv`);
 }
