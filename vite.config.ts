@@ -13,7 +13,6 @@ export default defineConfig(({ mode }) => ({
     },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
-  base: '/plataformacontrolle/',
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -21,4 +20,3 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
 }));
-  

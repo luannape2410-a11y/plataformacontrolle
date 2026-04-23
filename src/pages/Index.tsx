@@ -8,14 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ShieldCheck, ListTodo, CheckCircle2, AlertTriangle, RotateCcw, LayoutGrid, CalendarDays, LogOut, UserCircle } from "lucide-react";
+import { ShieldCheck, ListTodo, CheckCircle2, AlertTriangle, RotateCcw, LayoutGrid, CalendarDays } from "lucide-react";
 import { filterTasks, effectiveStatus } from "@/lib/taskUtils";
-import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
   const api = usePaaci();
   const { topics } = api;
-  const { user, role, signOut } = useAuth();
 
   const [filters, setFilters] = useState<FilterState>({ status: "all", topicId: "all", activityId: "all", period: "all" });
 
@@ -67,28 +65,8 @@ const Index = () => {
                 </AlertDialogContent>
               </AlertDialog>
               <ExportMenu topics={topics} />
-              <Button
-                variant="outline"
-                onClick={signOut}
-                className="bg-transparent border-primary-foreground/40 text-primary-foreground hover:bg-primary-foreground/10"
-                title={user?.email ?? ""}
-              >
-                <LogOut className="h-4 w-4 mr-2" /> Sair
-              </Button>
             </div>
           </div>
-
-          {user && (
-            <div className="mt-3 inline-flex items-center gap-2 text-xs opacity-90">
-              <UserCircle className="h-4 w-4" />
-              {user.email}
-              {role === "admin" && (
-                <span className="px-2 py-0.5 rounded-full bg-accent/20 border border-accent/40 uppercase tracking-wider">
-                  Admin
-                </span>
-              )}
-            </div>
-          )}
 
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8">
