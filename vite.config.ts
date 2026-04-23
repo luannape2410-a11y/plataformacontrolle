@@ -5,7 +5,7 @@ import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => ({
   // Definindo o caminho base corretamente com aspas simples iguais
-  base: "/plataformacontrolle/",
+  base: '/plataformacontrolle/',
   server: {
     host: "::",
     port: 8080,
