@@ -1,11 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
-const supabaseKey = import.meta.env.VITE_SUPABASE_KEY || "";
+// 1. Pegamos os valores (Usando os nomes que você configurou no Vercel/GitHub)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
 
-console.log("--- CHECK SUPABASE ---");
-console.log("URL detectada:", supabaseUrl ? "SIM" : "NÃO (VAZIO)");
-console.log("Key detectada:", supabaseKey ? "SIM" : "NÃO (VAZIO)");
-console.log("https://yqiysmteiiopsgyifkei.supabase.co");
+// 2. Log para a gente comemorar no F12
+console.log("--- DEBUG FINAL ---");
+console.log("Link capturado:", supabaseUrl);
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// 3. A ÚNICA FORMA de dar erro agora é se os nomes acima estiverem diferentes do que você digitou no painel
+export const supabase = createClient(
+  supabaseUrl || "", 
+  supabaseKey || ""
+);
