@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { usePaaci } from "@/hooks/usePaaciNew";
+import { usePaaci } from "@/hooks/usePaaci";
 import { TopicCard } from "@/components/paaci/TopicCard";
 import { ExportMenu } from "@/components/paaci/ExportMenu";
 import { TaskFilters, type FilterState } from "@/components/paaci/TaskFilters";
