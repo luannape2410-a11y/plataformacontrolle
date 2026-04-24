@@ -1,34 +1,14 @@
-import { useEffect, useState, useCallback } from "react";
-import type { Topic } from "@/types/paaci";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 
 export function usePaaci() {
-  const [topics, setTopics] = useState<Topic[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchPaaciData = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('paaci_topics')
-      .select('id, title, activities:paaci_activities(id, title, description, tasks:paaci_tasks(*))');
-
-    if (!error && data) {
-      setTopics(data as Topic[]);
-    }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    fetchPaaciData();
-  }, [fetchPaaciData]);
-
+  const [topics] = useState([]);
   return { 
     topics, 
-    loading, 
+    loading: false, 
     addTask: async () => {}, 
     updateTask: async () => {}, 
     deleteTask: async () => {}, 
     reset: () => {}, 
-    refresh: fetchPaaciData 
+    refresh: async () => {} 
   };
 }
