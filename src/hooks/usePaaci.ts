@@ -7,14 +7,18 @@ export function usePaaci() {
 
   const fetchPaaciData = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('paaci_topics')
-      .select('id, title, activities:paaci_activities(id, title, description, tasks:paaci_tasks(*))');
-    
-    if (!error && data) {
-      setTopics(data);
+    try {
+      const { data, error } = await supabase
+        .from('paaci_topics')
+        .select('*');
+
+      if (error) throw error;
+      setTopics(data || []);
+    } catch (error) {
+      console.error("Erro ao carregar:", error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
