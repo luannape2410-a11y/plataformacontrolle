@@ -6,6 +6,6 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_KEY || "";
 console.log("--- CHECK SUPABASE ---");
 console.log("URL detectada:", supabaseUrl ? "SIM" : "NÃO (VAZIO)");
 console.log("Key detectada:", supabaseKey ? "SIM" : "NÃO (VAZIO)");
-console.log("----------------------");
+console.log("https://yqiysmteiiopsgyifkei.supabase.co");
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
