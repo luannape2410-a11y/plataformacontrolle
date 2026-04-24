@@ -24,7 +24,7 @@ export function usePaaci() {
 
       if (error) throw error;
       setTopics(data || []);
-    } catch (error) {
+    } catch (err) {
       console.error("Erro ao carregar PAACI:", error);
     } finally {
       setLoading(false);
