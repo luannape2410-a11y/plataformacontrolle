@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import type { Topic, Task } from "@/types/paaci";
+import type { Topic } from "@/types/paaci";
 import { supabase } from "@/integrations/supabase/client";
 
 export function usePaaci() {
@@ -8,21 +8,14 @@ export function usePaaci() {
 
   const fetchPaaciData = useCallback(async () => {
     setLoading(true);
-    try {
-      const { data, error: supabaseError } = await supabase
-        .from('paaci_topics')
-        .select('id, title, activities:paaci_activities(id, title, description, tasks:paaci_tasks(*))');
+    const { data, error } = await supabase
+      .from('paaci_topics')
+      .select('id, title, activities:paaci_activities(id, title, description, tasks:paaci_tasks(*))');
 
-      if (supabaseError) {
-        console.error("Erro no Supabase:", supabaseError);
-      } else {
-        setTopics(data || []);
-      }
-    } catch (err) {
-      console.error("Erro geral:", err);
-    } finally {
-      setLoading(false);
+    if (!error && data) {
+      setTopics(data as Topic[]);
     }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
