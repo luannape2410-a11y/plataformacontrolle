@@ -6,11 +6,9 @@ export function usePaaci() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. FUNÇÃO PARA BUSCAR DADOS DO SUPABASE
   const fetchPaaciData = useCallback(async () => {
     setLoading(true);
     try {
-      // Busca tópicos com atividades e tarefas em uma única consulta (Joins)
       const { data, error } = await supabase
         .from('paaci_topics')
         .select(`
@@ -21,8 +19,14 @@ export function usePaaci() {
           )
         `);
 
-      if (error) throw error;
-      setTopics(data as Topic[]);
+      if (error) {
+        console.error("Erro na consulta do Supabase:", error.message);
+        throw error;
+      }
+
+    }
+    
+      setTopics(data || []);
     } catch (error) {
       console.error("Erro ao carregar PAACI:", error);
     } finally {
@@ -30,11 +34,6 @@ export function usePaaci() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchPaaciData();
-  }, [fetchPaaciData]);
-
-  // 2. FUNÇÃO PARA ADICIONAR TAREFA NO BANCO
   const addTask = useCallback(async (topicId: string, activityId: string, data: Omit<Task, "id" | "createdAt">) => {
     try {
       const { error } = await supabase
@@ -48,7 +47,6 @@ export function usePaaci() {
     }
   }, [fetchPaaciData]);
 
-  // 3. FUNÇÃO PARA ATUALIZAR TAREFA (Ex: Concluir)
   const updateTask = useCallback(async (topicId: string, activityId: string, taskId: string, data: Partial<Task>) => {
     try {
       const { error } = await supabase
@@ -63,7 +61,6 @@ export function usePaaci() {
     }
   }, [fetchPaaciData]);
 
-  // 4. FUNÇÃO PARA DELETAR TAREFA
   const deleteTask = useCallback(async (topicId: string, activityId: string, taskId: string) => {
     try {
       const { error } = await supabase
@@ -78,15 +75,14 @@ export function usePaaci() {
     }
   }, [fetchPaaciData]);
 
-  // Funções de Reset ou Atividade seguem a mesma lógica de insert/delete no Supabase
   const reset = useCallback(() => {
     alert("Função de reset desativada para proteger o banco de dados real.");
   }, []);
 
   return { 
-    topics, 
-    loading, // Adicionei o estado de loading para você usar na UI
-    addTask, 
+    topics,
+    loading,
+    addTask,
     updateTask, 
     deleteTask, 
     reset,
