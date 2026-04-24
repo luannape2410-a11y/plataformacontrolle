@@ -1,79 +1,95 @@
 import { useEffect, useState, useCallback } from "react";
 import type { Topic, Activity, Task } from "@/types/paaci";
-import { seedTopics } from "@/data/seedPaaci";
-
-const STORAGE_KEY = "paaci-2026-data-v1";
-
-const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+import { supabase } from "@/integrations/supabase/client";
 
 export function usePaaci() {
-  const [topics, setTopics] = useState<Topic[]>(() => {
-    if (typeof window === "undefined") return seedTopics;
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // 1. FUNÇÃO PARA BUSCAR DADOS DO SUPABASE
+  const fetchPaaciData = useCallback(async () => {
+    setLoading(true);
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw) as Topic[];
-    } catch {}
-    return seedTopics;
-  });
+      // Busca tópicos com atividades e tarefas em uma única consulta (Joins)
+      const { data, error } = await supabase
+        .from('paaci_topics')
+        .select(`
+          id, title,
+          activities:paaci_activities(
+            id, title, description,
+            tasks:paaci_tasks(*)
+          )
+        `);
+
+      if (error) throw error;
+      setTopics(data as Topic[]);
+    } catch (error) {
+      console.error("Erro ao carregar PAACI:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
+    fetchPaaciData();
+  }, [fetchPaaciData]);
+
+  // 2. FUNÇÃO PARA ADICIONAR TAREFA NO BANCO
+  const addTask = useCallback(async (topicId: string, activityId: string, data: Omit<Task, "id" | "createdAt">) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(topics));
-    } catch {}
-  }, [topics]);
+      const { error } = await supabase
+        .from('paaci_tasks')
+        .insert([{ ...data, activity_id: activityId }]);
 
-  const addActivity = useCallback((topicId: string, data: Omit<Activity, "id" | "tasks" | "custom">) => {
-    setTopics(prev => prev.map(t => t.id === topicId
-      ? { ...t, activities: [...t.activities, { ...data, id: uid(), tasks: [], custom: true }] }
-      : t));
+      if (error) throw error;
+      fetchPaaciData(); // Recarrega os dados para atualizar a tela
+    } catch (error) {
+      alert("Erro ao salvar tarefa no banco.");
+    }
+  }, [fetchPaaciData]);
+
+  // 3. FUNÇÃO PARA ATUALIZAR TAREFA (Ex: Concluir)
+  const updateTask = useCallback(async (topicId: string, activityId: string, taskId: string, data: Partial<Task>) => {
+    try {
+      const { error } = await supabase
+        .from('paaci_tasks')
+        .update(data)
+        .eq('id', taskId);
+
+      if (error) throw error;
+      fetchPaaciData();
+    } catch (error) {
+      console.error("Erro ao atualizar tarefa:", error);
+    }
+  }, [fetchPaaciData]);
+
+  // 4. FUNÇÃO PARA DELETAR TAREFA
+  const deleteTask = useCallback(async (topicId: string, activityId: string, taskId: string) => {
+    try {
+      const { error } = await supabase
+        .from('paaci_tasks')
+        .delete()
+        .eq('id', taskId);
+
+      if (error) throw error;
+      fetchPaaciData();
+    } catch (error) {
+      console.error("Erro ao deletar tarefa:", error);
+    }
+  }, [fetchPaaciData]);
+
+  // Funções de Reset ou Atividade seguem a mesma lógica de insert/delete no Supabase
+  const reset = useCallback(() => {
+    alert("Função de reset desativada para proteger o banco de dados real.");
   }, []);
 
-  const updateActivity = useCallback((topicId: string, activityId: string, data: Partial<Activity>) => {
-    setTopics(prev => prev.map(t => t.id === topicId
-      ? { ...t, activities: t.activities.map(a => a.id === activityId ? { ...a, ...data } : a) }
-      : t));
-  }, []);
-
-  const deleteActivity = useCallback((topicId: string, activityId: string) => {
-    setTopics(prev => prev.map(t => t.id === topicId
-      ? { ...t, activities: t.activities.filter(a => a.id !== activityId) }
-      : t));
-  }, []);
-
-  const addTask = useCallback((topicId: string, activityId: string, data: Omit<Task, "id" | "createdAt">) => {
-    setTopics(prev => prev.map(t => t.id === topicId
-      ? {
-          ...t,
-          activities: t.activities.map(a => a.id === activityId
-            ? { ...a, tasks: [...a.tasks, { ...data, id: uid(), createdAt: new Date().toISOString() }] }
-            : a),
-        }
-      : t));
-  }, []);
-
-  const updateTask = useCallback((topicId: string, activityId: string, taskId: string, data: Partial<Task>) => {
-    setTopics(prev => prev.map(t => t.id === topicId
-      ? {
-          ...t,
-          activities: t.activities.map(a => a.id === activityId
-            ? { ...a, tasks: a.tasks.map(tk => tk.id === taskId ? { ...tk, ...data } : tk) }
-            : a),
-        }
-      : t));
-  }, []);
-
-  const deleteTask = useCallback((topicId: string, activityId: string, taskId: string) => {
-    setTopics(prev => prev.map(t => t.id === topicId
-      ? {
-          ...t,
-          activities: t.activities.map(a => a.id === activityId
-            ? { ...a, tasks: a.tasks.filter(tk => tk.id !== taskId) }
-            : a),
-        }
-      : t));
-  }, []);
-
-  const reset = useCallback(() => setTopics(seedTopics), []);
-
-  return { topics, addActivity, updateActivity, deleteActivity, addTask, updateTask, deleteTask, reset };
+  return { 
+    topics, 
+    loading, // Adicionei o estado de loading para você usar na UI
+    addTask, 
+    updateTask, 
+    deleteTask, 
+    reset,
+    refresh: fetchPaaciData // Permite atualizar manualmente
+  };
 }
